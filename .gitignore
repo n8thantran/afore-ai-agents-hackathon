@@ -1,0 +1,40 @@
+# Environment files with sensitive credentials
+.env*
+frontend/.env*
+
+# Local database files with repository data
+frontend/data/
+frontend/repos.json
+data/
+repos.json
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
