@@ -1,22 +1,36 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { useState } from 'react';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
-import { ProjectGrid } from './ProjectGrid';
-import { LoginScreen } from './LoginScreen';
+import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { Header } from "./Header";
+import { Sidebar } from "./Sidebar";
+import { ProjectGrid } from "./ProjectGrid";
+import { Analytics } from "./Analytics";
+import { LoginScreen } from "./LoginScreen";
 
 export function Dashboard() {
   const { data: session, status } = useSession();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeView, setActiveView] = useState("overview");
 
   const handleSyncComplete = () => {
     // Force ProjectGrid to refresh by changing the key
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   };
 
-  if (status === 'loading') {
+  const renderActiveView = () => {
+    switch (activeView) {
+      case "analytics":
+        return <Analytics />;
+      case "projects":
+        return <ProjectGrid key={refreshKey} />;
+      case "overview":
+      default:
+        return <ProjectGrid key={refreshKey} />;
+    }
+  };
+
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
@@ -35,10 +49,8 @@ export function Dashboard() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       <Header onSyncComplete={handleSyncComplete} />
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-6">
-          <ProjectGrid key={refreshKey} />
-        </main>
+        <Sidebar activeItem={activeView} onItemChange={setActiveView} />
+        <main className="flex-1 p-6">{renderActiveView()}</main>
       </div>
     </div>
   );
