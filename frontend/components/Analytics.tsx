@@ -20,6 +20,13 @@ import {
   Play,
   Pause,
   StopCircle,
+  Zap,
+  Shield,
+  Wifi,
+  HardDrive,
+  Settings,
+  AlertCircle,
+  XCircle,
 } from "lucide-react";
 
 // Types for Terraform analytics data
@@ -127,16 +134,324 @@ interface TerraformAnalyticsData {
   };
 }
 
+// Live monitoring interfaces
+interface LiveMetric {
+  id: string;
+  name: string;
+  value: string;
+  status: 'healthy' | 'warning' | 'critical';
+  uptime: number;
+  lastUpdate: Date;
+  trend: 'up' | 'down' | 'stable';
+}
+
+interface SystemAlert {
+  id: string;
+  type: 'deployment' | 'security' | 'performance' | 'cost';
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+}
+
+interface LogEntry {
+  id: string;
+  timestamp: Date;
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS';
+  protocol: string;
+  sourceIP: string;
+  destinationIP: string;
+  message: string;
+  responseTime?: number;
+  userCount?: number;
+  status: number;
+}
+
+interface LiveSystemStatus {
+  overall: 'operational' | 'degraded' | 'outage';
+  uptime: number;
+  activeIncidents: number;
+  metrics: LiveMetric[];
+  alerts: SystemAlert[];
+  logs: LogEntry[];
+  deploymentQueue: Array<{
+    id: string;
+    project: string;
+    status: 'queued' | 'running' | 'completed' | 'failed';
+    startTime?: Date;
+    estimatedCompletion?: Date;
+  }>;
+}
+
 export function Analytics() {
   const [timeRange, setTimeRange] = useState("7d");
   const [selectedProject, setSelectedProject] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<TerraformAnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Live monitoring state
+  const [liveMonitoring, setLiveMonitoring] = useState(true);
+  const [systemStatus, setSystemStatus] = useState<LiveSystemStatus>({
+    overall: 'operational',
+    uptime: 99.8,
+    activeIncidents: 0,
+    metrics: [
+      {
+        id: 'cpu',
+        name: 'CPU Usage',
+        value: '23%',
+        status: 'healthy',
+        uptime: 99.9,
+        lastUpdate: new Date(),
+        trend: 'stable'
+      },
+      {
+        id: 'memory',
+        name: 'Memory',
+        value: '4.2GB',
+        status: 'healthy',
+        uptime: 99.8,
+        lastUpdate: new Date(),
+        trend: 'up'
+      },
+      {
+        id: 'disk',
+        name: 'Disk I/O',
+        value: '12 MB/s',
+        status: 'healthy',
+        uptime: 100,
+        lastUpdate: new Date(),
+        trend: 'stable'
+      },
+      {
+        id: 'network',
+        name: 'Network',
+        value: '1.2 Gbps',
+        status: 'healthy',
+        uptime: 99.9,
+        lastUpdate: new Date(),
+        trend: 'down'
+      }
+    ],
+    alerts: [],
+    logs: [],
+    deploymentQueue: []
+  });
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [timeRange]);
+
+  // Live monitoring effect with random updates
+  useEffect(() => {
+    if (!liveMonitoring) return;
+
+    const interval = setInterval(() => {
+      setSystemStatus(prev => {
+        const newMetrics = prev.metrics.map(metric => {
+          // Random value fluctuation
+          const baseValues = {
+            cpu: { min: 15, max: 85, unit: '%' },
+            memory: { min: 3.5, max: 7.8, unit: 'GB' },
+            disk: { min: 8, max: 45, unit: ' MB/s' },
+            network: { min: 0.8, max: 2.1, unit: ' Gbps' }
+          };
+
+          const config = baseValues[metric.id as keyof typeof baseValues];
+          if (!config) return metric;
+
+          const newValue = (Math.random() * (config.max - config.min) + config.min).toFixed(1);
+          const formattedValue = `${newValue}${config.unit}`;
+
+          // Determine trend
+          const currentNum = parseFloat(metric.value);
+          const newNum = parseFloat(newValue);
+          let trend: 'up' | 'down' | 'stable' = 'stable';
+          if (newNum > currentNum * 1.05) trend = 'up';
+          else if (newNum < currentNum * 0.95) trend = 'down';
+
+          // 5% chance of warning/critical status
+          let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+          const randomChance = Math.random();
+          if (randomChance < 0.02) status = 'critical'; // 2% critical
+          else if (randomChance < 0.05) status = 'warning'; // 3% warning
+
+          return {
+            ...metric,
+            value: formattedValue,
+            status,
+            lastUpdate: new Date(),
+            trend,
+            uptime: status === 'critical' ? Math.max(metric.uptime - 0.1, 95) : 
+                   status === 'warning' ? Math.max(metric.uptime - 0.05, 98) :
+                   Math.min(metric.uptime + 0.01, 100)
+          };
+        });
+
+        // Generate new log entries
+        const generateRandomIP = () => 
+          `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+        
+        const protocols = ['HTTPS', 'HTTP', 'TCP', 'UDP', 'WebSocket'];
+        const logTypes: ('INFO' | 'WARNING' | 'ERROR' | 'SUCCESS')[] = ['INFO', 'WARNING', 'ERROR', 'SUCCESS'];
+        const messages = {
+          INFO: ['Connection established', 'Request processed', 'User authenticated', 'Cache hit'],
+          SUCCESS: ['Deployment successful', 'Security scan passed', 'Backup completed', 'Health check passed'],
+          WARNING: ['High CPU usage detected', 'Memory threshold exceeded', 'Slow response time', 'Rate limit approaching'],
+          ERROR: ['Connection timeout', 'Authentication failed', 'Service unavailable', 'Database error']
+        };
+
+        const newLogs = [...prev.logs];
+        
+        // Generate 1-3 new log entries per interval
+        const logCount = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < logCount; i++) {
+          const logType = Math.random() < 0.7 ? 'INFO' : 
+                         Math.random() < 0.15 ? 'SUCCESS' :
+                         Math.random() < 0.1 ? 'WARNING' : 'ERROR';
+          
+          const protocol = protocols[Math.floor(Math.random() * protocols.length)];
+          const messageOptions = messages[logType];
+          const message = messageOptions[Math.floor(Math.random() * messageOptions.length)];
+
+          newLogs.unshift({
+            id: `log-${Date.now()}-${i}`,
+            timestamp: new Date(),
+            type: logType,
+            protocol,
+            sourceIP: generateRandomIP(),
+            destinationIP: generateRandomIP(),
+            message,
+            responseTime: Math.floor(Math.random() * 200) + 10,
+            userCount: Math.floor(Math.random() * 5000) + 100,
+            status: logType === 'ERROR' ? Math.floor(Math.random() * 100) + 400 :
+                   logType === 'WARNING' ? Math.floor(Math.random() * 100) + 300 :
+                   Math.floor(Math.random() * 100) + 200
+          });
+        }
+
+        // Keep only last 50 logs for performance
+        if (newLogs.length > 50) {
+          newLogs.splice(50);
+        }
+
+        // Generate alerts for critical/warning metrics
+        const newAlerts = [...prev.alerts];
+        newMetrics.forEach(metric => {
+          if ((metric.status === 'critical' || metric.status === 'warning') && 
+              !newAlerts.some(alert => alert.id.includes(metric.id) && !alert.resolved)) {
+            
+            const alertTypes = ['deployment', 'security', 'performance', 'cost'] as const;
+            const alertType = alertTypes[Math.floor(Math.random() * alertTypes.length)];
+            
+            const messages = {
+              deployment: `${metric.name} spike detected during deployment`,
+              security: `Security scan triggered by ${metric.name} anomaly`,
+              performance: `${metric.name} performance degradation`,
+              cost: `${metric.name} usage may impact cost projections`
+            };
+
+            newAlerts.push({
+              id: `${metric.id}-${Date.now()}`,
+              type: alertType,
+              message: messages[alertType],
+              severity: metric.status === 'critical' ? 'critical' : 'medium',
+              timestamp: new Date(),
+              resolved: false
+            });
+          }
+        });
+
+        // Auto-resolve some alerts randomly (20% chance per interval)
+        newAlerts.forEach(alert => {
+          if (!alert.resolved && Math.random() < 0.2) {
+            alert.resolved = true;
+            alert.resolvedAt = new Date();
+          }
+        });
+
+        const activeIncidents = newAlerts.filter(alert => !alert.resolved).length;
+        const overallStatus = activeIncidents > 2 ? 'outage' : 
+                             activeIncidents > 0 ? 'degraded' : 'operational';
+
+        return {
+          ...prev,
+          metrics: newMetrics,
+          alerts: newAlerts,
+          logs: newLogs,
+          activeIncidents,
+          overall: overallStatus,
+          uptime: overallStatus === 'operational' ? Math.min(prev.uptime + 0.01, 99.99) :
+                 Math.max(prev.uptime - 0.05, 95)
+        };
+      });
+    }, Math.random() * 2000 + 1000); // Random interval between 1-3 seconds
+
+    return () => clearInterval(interval);
+  }, [liveMonitoring]);
+
+  const resolveAlert = (alertId: string) => {
+    setSystemStatus(prev => ({
+      ...prev,
+      alerts: prev.alerts.map(alert => 
+        alert.id === alertId 
+          ? { ...alert, resolved: true, resolvedAt: new Date() }
+          : alert
+      )
+    }));
+  };
+
+  const resolveAllAlerts = () => {
+    setSystemStatus(prev => ({
+      ...prev,
+      alerts: prev.alerts.map(alert => 
+        alert.resolved ? alert : { ...alert, resolved: true, resolvedAt: new Date() }
+      )
+    }));
+  };
+
+  const triggerDeployment = () => {
+    const deploymentId = `deploy-${Date.now()}`;
+    setSystemStatus(prev => ({
+      ...prev,
+      deploymentQueue: [
+        ...prev.deploymentQueue,
+        {
+          id: deploymentId,
+          project: `Project-${Math.floor(Math.random() * 100)}`,
+          status: 'queued',
+          startTime: new Date(),
+          estimatedCompletion: new Date(Date.now() + Math.random() * 300000 + 120000) // 2-7 minutes
+        }
+      ]
+    }));
+
+    // Simulate deployment progression
+    setTimeout(() => {
+      setSystemStatus(prev => ({
+        ...prev,
+        deploymentQueue: prev.deploymentQueue.map(deploy => 
+          deploy.id === deploymentId 
+            ? { ...deploy, status: 'running' }
+            : deploy
+        )
+      }));
+    }, 2000);
+
+    setTimeout(() => {
+      const success = Math.random() > 0.1; // 90% success rate
+      setSystemStatus(prev => ({
+        ...prev,
+        deploymentQueue: prev.deploymentQueue.map(deploy => 
+          deploy.id === deploymentId 
+            ? { ...deploy, status: success ? 'completed' : 'failed' }
+            : deploy
+        )
+      }));
+    }, Math.random() * 10000 + 5000); // 5-15 seconds
+  };
 
   const fetchAnalyticsData = async () => {
     setIsLoading(true);
@@ -268,6 +583,294 @@ export function Analytics() {
             Refresh
           </button>
         </div>
+      </div>
+
+      {/* Live Monitoring Dashboard */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Live System Status</h2>
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+              systemStatus.overall === 'operational' 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                : systemStatus.overall === 'degraded'
+                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                systemStatus.overall === 'operational' ? 'bg-green-500' :
+                systemStatus.overall === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
+              } animate-pulse`}></div>
+              {systemStatus.overall === 'operational' ? 'All Systems Operational' :
+               systemStatus.overall === 'degraded' ? 'Degraded Performance' : 'Service Outage'}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Uptime: <span className="font-mono font-bold text-green-600">{systemStatus.uptime.toFixed(2)}%</span>
+            </div>
+            <button
+              onClick={() => setLiveMonitoring(!liveMonitoring)}
+              className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                liveMonitoring 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+              }`}
+            >
+              <Wifi className="w-4 h-4" />
+              {liveMonitoring ? 'Live' : 'Paused'}
+            </button>
+            <button
+              onClick={triggerDeployment}
+              className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+              Deploy
+            </button>
+          </div>
+        </div>
+
+        {/* Live Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {systemStatus.metrics.map((metric) => (
+            <div key={metric.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric.name}</h3>
+                <div className={`flex items-center gap-1 ${
+                  metric.status === 'healthy' ? 'text-green-500' :
+                  metric.status === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                }`}>
+                  {metric.status === 'healthy' ? <CheckCircle className="w-4 h-4" /> :
+                   metric.status === 'warning' ? <AlertTriangle className="w-4 h-4" /> :
+                   <XCircle className="w-4 h-4" />}
+                  {metric.trend === 'up' ? <TrendingUp className="w-3 h-3" /> :
+                   metric.trend === 'down' ? <TrendingDown className="w-3 h-3" /> :
+                   <div className="w-3 h-3 border-b border-gray-400"></div>}
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{metric.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {metric.uptime.toFixed(1)}% uptime
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {metric.lastUpdate.toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live Log Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Real-time Logs */}
+          <div className="bg-black text-green-400 rounded-lg p-4 font-mono text-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Activity className="w-5 h-5 text-green-400" />
+                Live Feed
+              </h3>
+              <div className="flex items-center gap-2 text-green-400">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs">LIVE</span>
+              </div>
+            </div>
+            <div className="h-96 overflow-y-auto space-y-1 custom-scrollbar">
+              {systemStatus.logs.map((log, index) => (
+                <div
+                  key={log.id}
+                  className={`p-2 rounded text-xs border-l-2 ${
+                    log.type === 'ERROR' ? 'border-red-500 bg-red-900/20 text-red-300' :
+                    log.type === 'WARNING' ? 'border-yellow-500 bg-yellow-900/20 text-yellow-300' :
+                    log.type === 'SUCCESS' ? 'border-green-500 bg-green-900/20 text-green-300' :
+                    'border-blue-500 bg-blue-900/20 text-blue-300'
+                  } ${index === 0 ? 'animate-pulse' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      log.type === 'ERROR' ? 'bg-red-600 text-white' :
+                      log.type === 'WARNING' ? 'bg-yellow-600 text-white' :
+                      log.type === 'SUCCESS' ? 'bg-green-600 text-white' :
+                      'bg-blue-600 text-white'
+                    }`}>
+                      {log.type} - {log.protocol}
+                    </span>
+                    <span className="text-gray-400">
+                      {(Date.now() - log.timestamp.getTime()) < 1000 ? '0s ago' :
+                       `${Math.floor((Date.now() - log.timestamp.getTime()) / 1000)}s ago`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-400">Source IP:</span>
+                      <div className="font-mono">{log.sourceIP}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Destination IP:</span>
+                      <div className="font-mono">{log.destinationIP}</div>
+                    </div>
+                  </div>
+                  <div className="mt-1">
+                    <span className="text-gray-400">Message:</span>
+                    <div>{log.message}</div>
+                  </div>
+                  <div className="flex items-center justify-between mt-1 text-xs">
+                    <span>Response: {log.responseTime}ms</span>
+                    <span>Users: {log.userCount}</span>
+                    <span>Status: {log.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* System Statistics */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              System Statistics
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium">Successful Requests</span>
+                </div>
+                <span className="text-lg font-bold text-green-600">
+                  {systemStatus.logs.filter(log => log.type === 'SUCCESS' || log.type === 'INFO').length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium">Warnings</span>
+                </div>
+                <span className="text-lg font-bold text-yellow-600">
+                  {systemStatus.logs.filter(log => log.type === 'WARNING').length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-sm font-medium">Errors</span>
+                </div>
+                <span className="text-lg font-bold text-red-600">
+                  {systemStatus.logs.filter(log => log.type === 'ERROR').length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">Avg Response Time</span>
+                </div>
+                <span className="text-lg font-bold text-blue-600">
+                  {systemStatus.logs.length > 0 
+                    ? Math.round(systemStatus.logs.reduce((acc, log) => acc + (log.responseTime || 0), 0) / systemStatus.logs.length)
+                    : 0}ms
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium">Active Users</span>
+                </div>
+                <span className="text-lg font-bold text-purple-600">
+                  {systemStatus.logs.length > 0 
+                    ? Math.max(...systemStatus.logs.map(log => log.userCount || 0))
+                    : 0}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Alerts */}
+        {systemStatus.alerts.filter(alert => !alert.resolved).length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                Active Alerts ({systemStatus.alerts.filter(alert => !alert.resolved).length})
+              </h3>
+              <button
+                onClick={resolveAllAlerts}
+                className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              >
+                Resolve All
+              </button>
+            </div>
+            <div className="space-y-3">
+              {systemStatus.alerts.filter(alert => !alert.resolved).map((alert) => (
+                <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${
+                  alert.severity === 'critical' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                  alert.severity === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
+                  alert.severity === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`px-2 py-1 rounded text-xs font-medium uppercase ${
+                        alert.type === 'deployment' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        alert.type === 'security' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        alert.type === 'performance' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      }`}>
+                        {alert.type}
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{alert.message}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {alert.timestamp.toLocaleTimeString()}
+                      </span>
+                      <button
+                        onClick={() => resolveAlert(alert.id)}
+                        className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-xs font-medium hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Deployment Queue */}
+        {systemStatus.deploymentQueue.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Deployment Queue ({systemStatus.deploymentQueue.length})
+            </h3>
+            <div className="space-y-3">
+              {systemStatus.deploymentQueue.map((deployment) => (
+                <div key={deployment.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${
+                      deployment.status === 'completed' ? 'bg-green-500' :
+                      deployment.status === 'failed' ? 'bg-red-500' :
+                      deployment.status === 'running' ? 'bg-blue-500 animate-pulse' :
+                      'bg-yellow-500'
+                    }`}></div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{deployment.project}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">{deployment.status}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {deployment.startTime && (
+                      <span>{deployment.startTime.toLocaleTimeString()}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}
