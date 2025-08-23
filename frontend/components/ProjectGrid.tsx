@@ -2,7 +2,7 @@
 
 import { Plus, Github, ExternalLink, GitBranch, Clock, Globe, MoreHorizontal } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 // Interface for GitHub repositories
 interface GitHubRepo {
@@ -36,6 +36,7 @@ export function ProjectGrid() {
   const [needsSync, setNeedsSync] = useState(false);
   const searchParams = useSearchParams();
   const query = (searchParams.get('search') || '').trim().toLowerCase();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -184,7 +185,16 @@ export function ProjectGrid() {
       {/* Project Grid - Unique Card Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {filtered.map((repo) => (
-          <div key={repo.id} className="group relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-2xl dark:hover:shadow-2xl transition-all duration-300 overflow-hidden">
+          <div
+            key={repo.id}
+            onClick={() => router.push(`/repo/${repo.full_name}`)}
+            className="group relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-2xl dark:hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') router.push(`/repo/${repo.full_name}`)
+            }}
+          >
             {/* Card Header with Gradient */}
             <div className="relative p-6 pb-4">
               {/* Status Indicator */}
@@ -269,6 +279,7 @@ export function ProjectGrid() {
             <div className="px-6 pb-6">
               <div className="flex gap-3">
                 <a 
+                  onClick={(e) => e.stopPropagation()}
                   href={repo.html_url} 
                   target="_blank" 
                   rel="noopener noreferrer"
@@ -277,7 +288,7 @@ export function ProjectGrid() {
                   <Github className="w-4 h-4" />
                   View Code
                 </a>
-                <button className="flex items-center justify-center gap-2 py-3 px-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-black rounded-xl font-medium transition-all duration-200 text-sm hover:shadow-lg">
+                <button onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-2 py-3 px-4 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-black rounded-xl font-medium transition-all duration-200 text-sm hover:shadow-lg">
                   <ExternalLink className="w-4 h-4" />
                   Deploy
                 </button>
