@@ -153,29 +153,29 @@ export function ProjectGrid() {
     <div className="max-w-7xl mx-auto">
       {/* Header with unique styling */}
       <div className="mb-8">
-        <div className="bg-black dark:bg-white rounded-2xl p-8 text-white dark:text-black">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 text-gray-900">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Repository Hub</h1>
-              <p className="text-gray-300 dark:text-gray-700 text-lg">Discover and manage your GitHub projects</p>
+              <p className="text-gray-600 text-lg">Discover and manage your GitHub projects</p>
               <div className="flex items-center gap-6 mt-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span>{filtered.filter(r => !r.private).length} Public</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                   <span>{filtered.filter(r => r.private).length} Private</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   <span>{filtered.filter(r => r.archived).length} Archived</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <div className="text-4xl font-bold">{filtered.length}</div>
-              <div className="text-gray-300 dark:text-gray-700">{query ? 'Matching Repositories' : 'Total Repositories'}</div>
+              <div className="text-gray-600">{query ? 'Matching Repositories' : 'Total Repositories'}</div>
             </div>
           </div>
         </div>

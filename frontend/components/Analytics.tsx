@@ -666,14 +666,14 @@ export function Analytics() {
         {/* Live Log Feed */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Real-time Logs */}
-          <div className="bg-black text-green-400 rounded-lg p-4 font-mono text-sm">
+          <div className="bg-white text-gray-800 rounded-lg p-4 font-mono text-sm border border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Activity className="w-5 h-5 text-green-400" />
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-green-600" />
                 Live Feed
               </h3>
-              <div className="flex items-center gap-2 text-green-400">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="flex items-center gap-2 text-green-600">
+                <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
                 <span className="text-xs">LIVE</span>
               </div>
             </div>
@@ -682,10 +682,10 @@ export function Analytics() {
                 <div
                   key={log.id}
                   className={`p-2 rounded text-xs border-l-2 ${
-                    log.type === 'ERROR' ? 'border-red-500 bg-red-900/20 text-red-300' :
-                    log.type === 'WARNING' ? 'border-yellow-500 bg-yellow-900/20 text-yellow-300' :
-                    log.type === 'SUCCESS' ? 'border-green-500 bg-green-900/20 text-green-300' :
-                    'border-blue-500 bg-blue-900/20 text-blue-300'
+                    log.type === 'ERROR' ? 'border-red-500 bg-red-50 text-red-800' :
+                    log.type === 'WARNING' ? 'border-yellow-500 bg-yellow-50 text-yellow-800' :
+                    log.type === 'SUCCESS' ? 'border-green-500 bg-green-50 text-green-800' :
+                    'border-blue-500 bg-blue-50 text-blue-800'
                   } ${index === 0 ? 'animate-pulse' : ''}`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -697,23 +697,23 @@ export function Analytics() {
                     }`}>
                       {log.type} - {log.protocol}
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {(Date.now() - log.timestamp.getTime()) < 1000 ? '0s ago' :
                        `${Math.floor((Date.now() - log.timestamp.getTime()) / 1000)}s ago`}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-gray-400">Source IP:</span>
+                      <span className="text-gray-500">Source IP:</span>
                       <div className="font-mono">{log.sourceIP}</div>
                     </div>
                     <div>
-                      <span className="text-gray-400">Destination IP:</span>
+                      <span className="text-gray-500">Destination IP:</span>
                       <div className="font-mono">{log.destinationIP}</div>
                     </div>
                   </div>
                   <div className="mt-1">
-                    <span className="text-gray-400">Message:</span>
+                    <span className="text-gray-500">Message:</span>
                     <div>{log.message}</div>
                   </div>
                   <div className="flex items-center justify-between mt-1 text-xs">
