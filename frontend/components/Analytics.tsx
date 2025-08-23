@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from 'next/navigation'
 import {
   TrendingUp,
   TrendingDown,
@@ -190,7 +191,8 @@ export function Analytics() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<TerraformAnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const searchParams = useSearchParams();
+  const currentTab = (searchParams.get('tab') || 'overview') as 'overview' | 'costs' | 'deployments' | 'security' | 'monitoring';
   
   // Live monitoring state
   const [liveMonitoring, setLiveMonitoring] = useState(true);
@@ -294,6 +296,111 @@ export function Analytics() {
       }
     ]
   });
+
+  // Small utility to animate numbers
+  const CountUp = ({ value, duration = 800, prefix = '', suffix = '' }: { value: number; duration?: number; prefix?: string; suffix?: string }) => {
+    const [display, setDisplay] = useState(0);
+    const hasAnimatedRef = useRef(false);
+    const targetRef = useRef(value || 0);
+
+    // Capture latest value but animate only once
+    useEffect(() => {
+      targetRef.current = value || 0;
+    }, [value]);
+
+    useEffect(() => {
+      if (hasAnimatedRef.current) {
+        // Ensure we stick to the final value on re-renders
+        setDisplay(targetRef.current);
+        return;
+      }
+      hasAnimatedRef.current = true;
+      let raf: number;
+      const start = performance.now();
+      const from = 0;
+      const to = targetRef.current;
+      const animate = (t: number) => {
+        const p = Math.min(1, (t - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setDisplay(Math.round(from + (to - from) * eased));
+        if (p < 1) raf = requestAnimationFrame(animate);
+      };
+      raf = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(raf);
+      // empty deps => run once on mount only
+    }, []);
+
+    return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
+  };
+
+  // Inline cost trend chart with simple line-draw animation and labels
+  const CostTrendChart = ({ points }: { points: Array<{ date: string; cost: number }> }) => {
+    const [ready, setReady] = useState(false);
+    const pathRef = useRef<SVGPathElement | null>(null);
+    useEffect(() => {
+      // Kick off animation on mount
+      const id = requestAnimationFrame(() => setReady(true));
+      return () => cancelAnimationFrame(id);
+    }, []);
+
+    const pad = 28;
+    const width = 700 - pad * 2;
+    const height = 256 - pad * 2;
+    const costs = points.map((p) => p.cost);
+    const max = Math.max(...costs);
+    const min = Math.min(...costs);
+    const stepX = width / Math.max(points.length - 1, 1);
+    const scaleY = (v: number) => height - ((v - min) / Math.max(max - min, 1)) * height;
+    const pathD = points
+      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${pad + i * stepX}, ${pad + scaleY(p.cost)}`)
+      .join(' ');
+    const areaD = `${pathD} L ${pad + (points.length - 1) * stepX}, ${pad + height} L ${pad}, ${pad + height} Z`;
+    const lastX = pad + (points.length - 1) * stepX;
+    const lastY = pad + scaleY(points[points.length - 1].cost);
+    const dash = ready && pathRef.current ? pathRef.current.getTotalLength() : 1000;
+
+    // Y-axis labels (min/max) and X-axis ticks (weekday)
+    const xTicks = points.map((p, i) => ({ x: pad + i * stepX, label: new Date(p.date).toLocaleDateString(undefined, { weekday: 'short' }) }));
+
+    return (
+      <svg className="w-full h-64" viewBox="0 0 700 256" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="costGradientFull" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        {/* Axes labels */}
+        <g>
+          <text x={4} y={pad + 8} className="fill-gray-400" fontSize="10">${max.toLocaleString()}</text>
+          <text x={4} y={pad + height} className="fill-gray-400" fontSize="10">${min.toLocaleString()}</text>
+          {xTicks.map((t, idx) => (
+            <text key={idx} x={t.x} y={pad + height + 16} className="fill-gray-400" fontSize="10" textAnchor="middle">{t.label}</text>
+          ))}
+        </g>
+        {/* Area and line */}
+        <g style={{ opacity: ready ? 1 : 0, transition: 'opacity 500ms ease' }}>
+          <path d={areaD} fill="url(#costGradientFull)" />
+          <path
+            ref={pathRef}
+            d={pathD}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth="3"
+            strokeDasharray={dash}
+            strokeDashoffset={ready ? 0 : dash}
+            style={{ transition: 'stroke-dashoffset 900ms ease' }}
+          />
+          {/* Last point marker and label */}
+          <circle cx={lastX} cy={lastY} r={4} fill="#2563eb" />
+          <rect x={Math.max(0, lastX - 48)} y={Math.max(0, lastY - 28)} width="96" height="20" rx="4" className="fill-white dark:fill-gray-800" />
+          <text x={lastX} y={Math.max(0, lastY - 14)} textAnchor="middle" fontSize="11" className="fill-gray-700 dark:fill-gray-200">
+            ${points[points.length - 1].cost.toLocaleString()}
+          </text>
+        </g>
+      </svg>
+    );
+  };
 
   // Mock data for demonstration
   useEffect(() => {
@@ -573,12 +680,24 @@ export function Analytics() {
   }
 
   if (!data) {
+    // Skeleton loading
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center py-12">
-          <p className="text-gray-600 dark:text-gray-400">
-            No analytics data available
-          </p>
+      <div className="max-w-7xl mx-auto animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="h-4 w-32 bg-gray-100 dark:bg-gray-700 rounded mb-3" />
+              <div className="h-8 w-24 bg-gray-100 dark:bg-gray-700 rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="h-4 w-40 bg-gray-100 dark:bg-gray-700 rounded mb-3" />
+              <div className="h-28 w-full bg-gray-100 dark:bg-gray-700 rounded" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -586,16 +705,8 @@ export function Analytics() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Terraform Analytics
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Monitor infrastructure deployments, costs, and performance
-          </p>
-        </div>
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <select
             value={timeRange}
@@ -620,40 +731,13 @@ export function Analytics() {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="mb-8">
-        <nav className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-          {[
-            { id: "overview", label: "Overview", icon: Activity },
-            { id: "costs", label: "Costs & Trends", icon: DollarSign },
-            { id: "deployments", label: "Deployments", icon: Server },
-            { id: "security", label: "Security & Compliance", icon: Shield },
-            { id: "monitoring", label: "Live Monitoring", icon: Wifi },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      {/* Tabs are in AnalyticsTabs component now (URL-driven) */}
 
       {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="space-y-8">
+      {currentTab === "overview" && (
+        <div className="space-y-6">
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -661,7 +745,7 @@ export function Analytics() {
                     Successful Deployments
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {data.deployments.successful}
+                    <CountUp value={data.deployments.successful} />
                   </p>
                 </div>
                 <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -685,7 +769,7 @@ export function Analytics() {
                     Total Resources
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {data.resources.total.toLocaleString()}
+                    <CountUp value={data.resources.total} />
                   </p>
                 </div>
                 <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -707,7 +791,7 @@ export function Analytics() {
                     Monthly Cost
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${data.costs.current.toLocaleString()}
+                    $<CountUp value={data.costs.current} />
                   </p>
                 </div>
                 <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
@@ -738,7 +822,7 @@ export function Analytics() {
                     Avg Deploy Time
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {data.performance.avgDeployTime}m
+                    <CountUp value={Math.round(data.performance.avgDeployTime)} suffix="m" />
                   </p>
                 </div>
                 <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg">
@@ -754,30 +838,116 @@ export function Analytics() {
             </div>
           </div>
 
+          {/* Trends mini-charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Deployments Trend</h3>
+                <span className="text-xs text-gray-500">Last 7 days</span>
+              </div>
+              <svg className="w-full h-28" viewBox="0 0 700 120" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="depGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#22c55e" stopOpacity="0.05" />
+                  </linearGradient>
+                </defs>
+                {(() => {
+                  const pts = data.deployments.trend.daily.map((v, i) => ({ x: i, y: v }))
+                  const pad = 12
+                  const w = 700 - pad * 2
+                  const h = 120 - pad * 2
+                  const max = Math.max(...pts.map(p => p.y)) || 1
+                  const min = Math.min(...pts.map(p => p.y)) || 0
+                  const stepX = w / Math.max(pts.length - 1, 1)
+                  const scaleY = (v: number) => h - ((v - min) / Math.max(max - min, 1)) * h
+                  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${pad + i * stepX}, ${pad + scaleY(p.y)}`).join(' ')
+                  const area = `${path} L ${pad + (pts.length - 1) * stepX}, ${pad + h} L ${pad}, ${pad + h} Z`
+                  return (
+                    <g key="dep-area">
+                      <path d={area} fill="url(#depGradient)" />
+                      <path d={path} fill="none" stroke="#16a34a" strokeWidth="3" />
+                    </g>
+                  )
+                })()}
+              </svg>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Cost Trend</h3>
+                <span className="text-xs text-gray-500">Last 7 days</span>
+              </div>
+              <svg className="w-full h-28" viewBox="0 0 700 120" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="miniCostGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+                  </linearGradient>
+                </defs>
+                {(() => {
+                  const pts = data.costs.trend.map((d) => d.cost)
+                  const pad = 12
+                  const w = 700 - pad * 2
+                  const h = 120 - pad * 2
+                  const max = Math.max(...pts) || 1
+                  const min = Math.min(...pts) || 0
+                  const stepX = w / Math.max(pts.length - 1, 1)
+                  const scaleY = (v: number) => h - ((v - min) / Math.max(max - min, 1)) * h
+                  const path = pts.map((v, i) => `${i === 0 ? 'M' : 'L'} ${pad + i * stepX}, ${pad + scaleY(v)}`).join(' ')
+                  const area = `${path} L ${pad + (pts.length - 1) * stepX}, ${pad + h} L ${pad}, ${pad + h} Z`
+                  return (
+                    <g key="cost-area-mini">
+                      <path d={area} fill="url(#miniCostGradient)" />
+                      <path d={path} fill="none" stroke="#2563eb" strokeWidth="3" />
+                    </g>
+                  )
+                })()}
+              </svg>
+            </div>
+          </div>
+
+          {/* Activity summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Deployments today</div>
+              <div className="text-xl font-semibold text-gray-900 dark:text-white">{Math.round(data.deployments.trend.daily.slice(-1)[0] || 0)}</div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1 inline-flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> +{Math.round((data.deployments.successRate / 10))}% vs avg
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Incidents (24h)</div>
+              <div className="text-xl font-semibold text-gray-900 dark:text-white">{data.security.vulnerabilities}</div>
+              <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 inline-flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> {data.security.complianceIssues} compliance
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg response time</div>
+              <div className="text-xl font-semibold text-gray-900 dark:text-white">142ms</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Synthetic sample</div>
+            </div>
+          </div>
+
           {/* Quick Actions */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <button className="flex items-center gap-3 px-4 py-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800 transition-colors">
-                <Play className="w-4 h-4" />
-                Run Terraform Plan
+                <Play className="w-4 h-4" /> Run Terraform Plan
               </button>
               <button className="flex items-center gap-3 px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
-                <Activity className="w-4 h-4" />
-                Check Drift
+                <Activity className="w-4 h-4" /> Check Drift
               </button>
               <button className="flex items-center gap-3 px-4 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
-                <Download className="w-4 h-4" />
-                Export Report
+                <Download className="w-4 h-4" /> Export Report
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {activeTab === "costs" && (
+      {currentTab === "costs" && (
         <div className="space-y-8">
           {/* Cost Trend Chart */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -792,25 +962,7 @@ export function Analytics() {
                 </span>
               </div>
             </div>
-            <div className="h-64 flex items-end justify-between gap-2">
-              {data.costs.trend.map((day, index) => {
-                const maxCost = Math.max(...data.costs.trend.map((d) => d.cost));
-                const height = (day.cost / maxCost) * 100;
-                return (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div
-                      className="w-full bg-gradient-to-t from-blue-500 to-blue-600 rounded-t"
-                      style={{ height: `${height}%` }}
-                    ></div>
-                    <span className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      {new Date(day.date).toLocaleDateString(undefined, {
-                        weekday: "short",
-                      })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <CostTrendChart points={data.costs.trend} />
           </div>
 
           {/* Cost Breakdown */}
@@ -850,7 +1002,7 @@ export function Analytics() {
         </div>
       )}
 
-      {activeTab === "deployments" && (
+      {currentTab === "deployments" && (
         <div className="space-y-8">
           {/* Recent Deployments Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -987,7 +1139,7 @@ export function Analytics() {
         </div>
       )}
 
-      {activeTab === "security" && (
+      {currentTab === "security" && (
         <div className="space-y-8">
           {/* Security Overview */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1122,7 +1274,7 @@ export function Analytics() {
         </div>
       )}
 
-      {activeTab === "monitoring" && (
+      {currentTab === "monitoring" && (
         <div className="space-y-6">
           {/* Header with Live Status */}
           <div className="text-center mb-8">
