@@ -1,8 +1,10 @@
 'use client';
 
 import { Bell, Search, ChevronDown, Settings, LogOut, User } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface HeaderProps {
   onSyncComplete?: () => void;
@@ -11,13 +13,68 @@ interface HeaderProps {
 export function Header({ onSyncComplete }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { data: session } = useSession();
+  const [query, setQuery] = useState('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const [repoSuggestions, setRepoSuggestions] = useState<Array<{ id: number; name: string; full_name: string; html_url: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+
+  const navClass = (href: string) => {
+    const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+    return [
+      'text-sm transition-colors',
+      active
+        ? 'text-black dark:text-white font-semibold'
+        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+    ].join(' ');
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRepos = async () => {
+      try {
+        const res = await fetch('/api/repos');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setRepoSuggestions(
+            (data || []).map((r: any) => ({ id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url }))
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    if (session) loadRepos();
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!searchRef.current) return;
+      if (!searchRef.current.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as Array<{ id: number; name: string; full_name: string; html_url: string }>;
+    return repoSuggestions
+      .filter((r) => r.name.toLowerCase().startsWith(q) || r.full_name.toLowerCase().startsWith(q))
+      .slice(0, 8);
+  }, [query, repoSuggestions]);
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
   };
 
   return (
-    <header className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-700 h-20 flex items-center justify-between px-8 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white dark:bg-black border-b border-gray-200 dark:border-gray-700 h-20 flex items-center justify-between px-8 shadow-sm">
       {/* Logo and Navigation */}
       <div className="flex items-center gap-12">
         <div className="flex items-center gap-4">
@@ -33,23 +90,53 @@ export function Header({ onSyncComplete }: HeaderProps) {
         </div>
 
         <nav className="hidden lg:flex items-center gap-8">
-          <a href="#" className="text-sm font-semibold text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Dashboard</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Repositories</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Analytics</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Settings</a>
+          <Link href="/" className={navClass('/')}>Dashboard</Link>
+          <Link href="/chat" className={navClass('/chat')}>Chat</Link>
+          <Link href="/repo" className={navClass('/repo')}>Repositories</Link>
+          <Link href="/analytics" className={navClass('/analytics')}>Analytics</Link>
         </nav>
       </div>
 
       {/* Search and User Menu */}
       <div className="flex items-center gap-6">
         {/* Search */}
-        <div className="relative hidden sm:block">
+        <div ref={searchRef} className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search projects..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const q = query.trim();
+                router.push(q ? `/repo?search=${encodeURIComponent(q)}` : '/repo');
+                setShowSuggestions(false);
+              }
+            }}
+            onFocus={() => setShowSuggestions(!!query.trim())}
             className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute left-0 right-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 p-2">
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      const q = s.name;
+                      setQuery(q);
+                      setShowSuggestions(false);
+                      router.push(`/repo?search=${encodeURIComponent(q)}`);
+                    }}
+                    className="px-2.5 py-1 rounded-full text-xs border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Notifications */}

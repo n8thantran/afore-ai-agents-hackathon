@@ -2,8 +2,6 @@
 
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
 import { ProjectGrid } from "./ProjectGrid";
 import { Analytics } from "./Analytics";
 import { LoginScreen } from "./LoginScreen";
@@ -46,12 +44,6 @@ export function Dashboard() {
   }
 
   return (
-    <div className="h-screen bg-white dark:bg-gray-950 flex flex-col">
-      <Header onSyncComplete={handleSyncComplete} />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar activeItem={activeView} onItemChange={setActiveView} />
-        <main className="flex-1 overflow-y-auto p-6">{renderActiveView()}</main>
-      </div>
-    </div>
+    <div className="p-6">{renderActiveView()}</div>
   );
 }

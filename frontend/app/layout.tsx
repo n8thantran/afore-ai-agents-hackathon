@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from '@/components/Providers';
+import { Header } from '@/components/Header';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +40,10 @@ export default function RootLayout({
         className={`${uberMove.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          {children}
+          <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
+            <Header />
+            <main className="flex-1 overflow-y-auto">{children}</main>
+          </div>
         </Providers>
       </body>
     </html>

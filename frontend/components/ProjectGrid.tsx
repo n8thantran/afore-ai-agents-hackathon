@@ -2,6 +2,7 @@
 
 import { Plus, Github, ExternalLink, GitBranch, Clock, Globe, MoreHorizontal } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 // Interface for GitHub repositories
 interface GitHubRepo {
@@ -33,6 +34,8 @@ export function ProjectGrid() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [needsSync, setNeedsSync] = useState(false);
+  const searchParams = useSearchParams();
+  const query = (searchParams.get('search') || '').trim().toLowerCase();
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -102,6 +105,21 @@ export function ProjectGrid() {
     }
   };
 
+  const filtered = query
+    ? repos.filter((r) => {
+        const hay = [
+          r.name,
+          r.full_name,
+          r.description || '',
+          r.language || '',
+          ...(r.topics || []),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(query);
+      })
+    : repos;
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto">
@@ -143,21 +161,21 @@ export function ProjectGrid() {
               <div className="flex items-center gap-6 mt-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>{repos.filter(r => !r.private).length} Public</span>
+                  <span>{filtered.filter(r => !r.private).length} Public</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                  <span>{repos.filter(r => r.private).length} Private</span>
+                  <span>{filtered.filter(r => r.private).length} Private</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                  <span>{repos.filter(r => r.archived).length} Archived</span>
+                  <span>{filtered.filter(r => r.archived).length} Archived</span>
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold">{repos.length}</div>
-              <div className="text-gray-300 dark:text-gray-700">Total Repositories</div>
+              <div className="text-4xl font-bold">{filtered.length}</div>
+              <div className="text-gray-300 dark:text-gray-700">{query ? 'Matching Repositories' : 'Total Repositories'}</div>
             </div>
           </div>
         </div>
@@ -165,7 +183,7 @@ export function ProjectGrid() {
 
       {/* Project Grid - Unique Card Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {repos.map((repo) => (
+        {filtered.map((repo) => (
           <div key={repo.id} className="group relative bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-2xl dark:hover:shadow-2xl transition-all duration-300 overflow-hidden">
             {/* Card Header with Gradient */}
             <div className="relative p-6 pb-4">
