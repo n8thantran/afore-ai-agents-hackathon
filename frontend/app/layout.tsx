@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from '@/components/Providers';
 
@@ -11,6 +12,15 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const uberMove = localFont({
+  src: [
+    { path: "../public/fonts/uber-move/UberMoveMedium.otf", weight: "500", style: "normal" },
+    { path: "../public/fonts/uber-move/UberMoveBold.otf", weight: "700", style: "normal" }
+  ],
+  variable: "--font-uber-move",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${uberMove.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
           {children}
