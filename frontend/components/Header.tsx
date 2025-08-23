@@ -3,9 +3,12 @@
 import { Bell, Search, ChevronDown, Settings, LogOut, User } from 'lucide-react';
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import SyncButton from './SyncButton';
 
-export function Header({ onSyncComplete }: { onSyncComplete?: () => void }) {
+interface HeaderProps {
+  onSyncComplete?: () => void;
+}
+
+export function Header({ onSyncComplete }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { data: session } = useSession();
 
@@ -14,31 +17,31 @@ export function Header({ onSyncComplete }: { onSyncComplete?: () => void }) {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-16 flex items-center justify-between px-6">
+    <header className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-700 h-20 flex items-center justify-between px-8 shadow-sm">
       {/* Logo and Navigation */}
-      <div className="flex items-center gap-8">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-black dark:bg-white rounded flex items-center justify-center">
-            <svg className="w-4 h-4 text-white dark:text-black" viewBox="0 0 24 24" fill="currentColor">
+      <div className="flex items-center gap-12">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-black dark:bg-white rounded-2xl flex items-center justify-center shadow-lg">
+            <svg className="w-5 h-5 text-white dark:text-black" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
           </div>
-          <span className="font-bold text-xl text-gray-900 dark:text-white">OpsPilot</span>
+          <div>
+            <span className="font-bold text-2xl text-black dark:text-white">OpsPilot</span>
+            <div className="text-xs text-gray-500 dark:text-gray-400 -mt-1">Repository Manager</div>
+          </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <a href="#" className="text-sm font-medium text-gray-900 dark:text-white hover:text-gray-600 dark:hover:text-gray-300">Overview</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Projects</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Integrations</a>
-          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Marketplace</a>
+        <nav className="hidden lg:flex items-center gap-8">
+          <a href="#" className="text-sm font-semibold text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Dashboard</a>
+          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Repositories</a>
+          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Analytics</a>
+          <a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">Settings</a>
         </nav>
       </div>
 
       {/* Search and User Menu */}
-      <div className="flex items-center gap-4">
-        {/* Sync Button */}
-        <SyncButton onSyncComplete={onSyncComplete} />
-
+      <div className="flex items-center gap-6">
         {/* Search */}
         <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />

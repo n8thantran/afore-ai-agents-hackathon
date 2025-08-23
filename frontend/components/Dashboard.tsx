@@ -46,11 +46,11 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="h-screen bg-white dark:bg-gray-950 flex flex-col">
       <Header onSyncComplete={handleSyncComplete} />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar activeItem={activeView} onItemChange={setActiveView} />
-        <main className="flex-1 p-6">{renderActiveView()}</main>
+        <main className="flex-1 overflow-y-auto p-6">{renderActiveView()}</main>
       </div>
     </div>
   );

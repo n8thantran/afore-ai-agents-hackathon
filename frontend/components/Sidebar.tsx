@@ -1,23 +1,16 @@
 "use client";
 
-import {
-  Home,
-  FolderOpen,
-  Settings,
-  Activity,
-  Users,
-  CreditCard,
-  HelpCircle,
-} from "lucide-react";
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { Home, FolderOpen, Settings, Activity, Users, CreditCard, HelpCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import SyncButton from './SyncButton';
 
 interface SidebarProps {
-  activeItem: string;
-  onItemChange: (item: string) => void;
+  onSyncComplete?: () => void;
+  activeItem?: string;
+  onItemChange?: (itemId: string) => void;
 }
 
-export function Sidebar({ activeItem, onItemChange }: SidebarProps) {
+export function Sidebar({ onSyncComplete, activeItem = 'overview', onItemChange }: SidebarProps) {
   const { data: session } = useSession();
 
   const menuItems = [
@@ -39,31 +32,31 @@ export function Sidebar({ activeItem, onItemChange }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-[calc(100vh-4rem)]">
-      <div className="p-4">
-        {/* Team Selector */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            {session?.user?.image ? (
-              <img
-                src={session.user.image}
-                alt="User avatar"
-                className="w-8 h-8 rounded"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
-                <span className="text-white text-sm font-bold">
-                  {session?.user?.name ? getInitials(session.user.name) : "U"}
-                </span>
+    <aside className="w-80 flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* User Profile Card */}
+        <div className="mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-4 mb-4">
+              {session?.user?.image ? (
+                <img 
+                  src={session.user.image} 
+                  alt="User avatar" 
+                  className="w-12 h-12 rounded-2xl"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-black dark:bg-white rounded-2xl flex items-center justify-center">
+                  <span className="text-white dark:text-black text-lg font-bold">
+                    {session?.user?.name ? getInitials(session.user.name) : 'U'}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  {session?.user?.name || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Personal Account</p>
               </div>
-            )}
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {session?.user?.name || "User"}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Personal Account
-              </p>
             </div>
           </div>
         </div>
@@ -77,7 +70,7 @@ export function Sidebar({ activeItem, onItemChange }: SidebarProps) {
             return (
               <button
                 key={item.id}
-                onClick={() => onItemChange(item.id)}
+                onClick={() => onItemChange?.(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${
                   isActive
                     ? "bg-black dark:bg-white text-white dark:text-black"
@@ -90,6 +83,12 @@ export function Sidebar({ activeItem, onItemChange }: SidebarProps) {
             );
           })}
         </nav>
+
+        {/* Sync Section */}
+        <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Quick Actions</h3>
+          <SyncButton onSyncComplete={onSyncComplete} />
+        </div>
 
         {/* Help Section */}
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
