@@ -85,7 +85,7 @@ export function Header({ onSyncComplete }: HeaderProps) {
           </div>
           <div>
             <span className="font-bold text-2xl text-black dark:text-white">OpsPilot</span>
-            <div className="text-xs text-gray-500 dark:text-gray-400 -mt-1">Repository Manager</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 -mt-1">DevOps Manager</div>
           </div>
         </div>
 
