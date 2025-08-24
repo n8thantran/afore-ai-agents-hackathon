@@ -3,10 +3,10 @@ import { RepoDatabase } from '@/lib/database'
 
 export async function GET(
   _req: Request,
-  { params }: { params: { owner: string; name: string } }
+  { params }: { params: Promise<{ owner: string; name: string }> }
 ) {
   try {
-    const { owner, name } = params
+    const { owner, name } = await params
     const fullName = `${owner}/${name}`.toLowerCase()
     const repos = RepoDatabase.getAllRepos()
     const repo = repos.find((r) => r.full_name.toLowerCase() === fullName)

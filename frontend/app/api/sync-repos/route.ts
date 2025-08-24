@@ -4,9 +4,19 @@ import { GitHubService } from '@/lib/github-service';
 import { RepoDatabase } from '@/lib/database';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+interface SessionWithToken {
+  accessToken?: string
+  user?: {
+    id?: string
+    login?: string
+    name?: string | null
+    email?: string | null
+  }
+}
+
 export async function POST() {
   try {
-    const session: any = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions) as SessionWithToken | null;
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized - No session' }, { status: 401 });

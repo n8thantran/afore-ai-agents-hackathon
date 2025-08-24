@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import BackButton from '@/components/BackButton'
 
 async function getRepo(owner: string, name: string) {
-  const hdrs = headers()
+  const hdrs = await headers()
   const host = hdrs.get('x-forwarded-host') || hdrs.get('host') || 'localhost:3000'
   const proto = hdrs.get('x-forwarded-proto') || 'http'
   const baseUrl = `${proto}://${host}`
@@ -14,8 +14,9 @@ async function getRepo(owner: string, name: string) {
   return res.json()
 }
 
-export default async function RepoDetailPage({ params }: { params: { owner: string; name: string } }) {
-  const repo = await getRepo(params.owner, params.name)
+export default async function RepoDetailPage({ params }: { params: Promise<{ owner: string; name: string }> }) {
+  const { owner, name } = await params
+  const repo = await getRepo(owner, name)
   if (!repo) return notFound()
 
   return (

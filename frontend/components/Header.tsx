@@ -10,7 +10,7 @@ interface HeaderProps {
   onSyncComplete?: () => void;
 }
 
-export function Header({ onSyncComplete }: HeaderProps) {
+export function Header({}: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { data: session } = useSession();
   const [query, setQuery] = useState('');
@@ -39,10 +39,10 @@ export function Header({ onSyncComplete }: HeaderProps) {
         const data = await res.json();
         if (!cancelled) {
           setRepoSuggestions(
-            (data || []).map((r: any) => ({ id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url }))
+            (data || []).map((r: { id: number; name: string; full_name: string; html_url: string }) => ({ id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url }))
           );
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -151,9 +151,10 @@ export function Header({ onSyncComplete }: HeaderProps) {
             className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             {session?.user?.image ? (
-              <img 
-                src={session.user.image} 
-                alt="User avatar" 
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt="User avatar"
                 className="w-8 h-8 rounded-full"
               />
             ) : (

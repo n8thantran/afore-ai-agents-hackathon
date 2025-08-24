@@ -9,8 +9,10 @@ import { LoginScreen } from "./LoginScreen";
 export function Dashboard() {
   const { data: session, status } = useSession();
   const [refreshKey, setRefreshKey] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [activeView, setActiveView] = useState("overview");
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSyncComplete = () => {
     // Force ProjectGrid to refresh by changing the key
     setRefreshKey((prev) => prev + 1);

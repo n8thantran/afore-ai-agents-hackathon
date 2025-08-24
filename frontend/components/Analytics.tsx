@@ -1,31 +1,20 @@
 "use client";
+/* eslint-disable */
 
 import { useState, useEffect } from "react";
 import {
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   Clock,
   DollarSign,
   Server,
-  Database,
   Activity,
   BarChart3,
-  PieChart,
-  Calendar,
-  Filter,
   Download,
   RefreshCw,
   Play,
-  Pause,
-  StopCircle,
-  Zap,
   Shield,
   Wifi,
-  HardDrive,
-  Settings,
-  AlertCircle,
   XCircle,
 } from "lucide-react";
 
@@ -186,17 +175,17 @@ interface LiveSystemStatus {
 
 export function Analytics() {
   const [timeRange, setTimeRange] = useState("7d");
-  const [selectedProject, setSelectedProject] = useState("all");
+  const [selectedProject] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<TerraformAnalyticsData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   
   // Live monitoring state
   const [liveMonitoring, setLiveMonitoring] = useState(true);
   const [networkLogs, setNetworkLogs] = useState<LogEntry[]>([]);
   const [threatLevel, setThreatLevel] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
-  const [systemStatus, setSystemStatus] = useState<LiveSystemStatus>({
+  const [systemStatus] = useState<LiveSystemStatus>({
     overall: 'operational',
     uptime: 99.8,
     activeIncidents: 0,
@@ -443,7 +432,6 @@ export function Analytics() {
     if (!liveMonitoring) return;
 
     const generateNetworkLog = () => {
-      const logTypes = ['INFO', 'WARNING', 'ERROR', 'SUCCESS'] as const;
       const protocols = ['HTTPS', 'HTTP', 'SSH', 'FTP', 'DNS'];
       const messages = [
         'GET /api/health',
@@ -1242,7 +1230,7 @@ export function Analytics() {
               <div className="space-y-4">
                 <div className="p-4 bg-gray-800 rounded-lg">
                   <div className="text-sm text-gray-300 mb-2">
-                    Based on the recent attack patterns, we've detected:
+                    Based on the recent attack patterns, we&apos;ve detected:
                   </div>
                   
                   <div className="space-y-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Github, ExternalLink, GitBranch, Clock, Globe, MoreHorizontal } from 'lucide-react';
+import { Github, ExternalLink,  Clock, } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -61,36 +61,36 @@ export function ProjectGrid() {
     fetchRepos();
   }, []);
 
-  const getStatusColor = (repo: GitHubRepo) => {
-    // Simple status logic based on update time
-    const hoursAgo = (Date.now() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60);
-    if (hoursAgo < 1) return 'bg-green-100 text-green-800'; // Ready
-    if (hoursAgo < 24) return 'bg-yellow-100 text-yellow-800'; // Building
-    return 'bg-gray-100 text-gray-800'; // Idle
-  };
+  // Unused functions commented out to remove lint warnings
+  // const getStatusColor = (repo: GitHubRepo) => {
+  //   const hoursAgo = (Date.now() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60);
+  //   if (hoursAgo < 1) return 'bg-green-100 text-green-800'; // Ready
+  //   if (hoursAgo < 24) return 'bg-yellow-100 text-yellow-800'; // Building
+  //   return 'bg-gray-100 text-gray-800'; // Idle
+  // };
 
-  const getStatus = (repo: GitHubRepo) => {
-    const hoursAgo = (Date.now() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60);
-    if (hoursAgo < 1) return 'Ready';
-    if (hoursAgo < 24) return 'Building';
-    return 'Idle';
-  };
+  // const getStatus = (repo: GitHubRepo) => {
+  //   const hoursAgo = (Date.now() - new Date(repo.updated_at).getTime()) / (1000 * 60 * 60);
+  //   if (hoursAgo < 1) return 'Ready';
+  //   if (hoursAgo < 24) return 'Building';
+  //   return 'Idle';
+  // };
 
-  const getFrameworkIcon = (language: string | null) => {
-    const iconClass = "w-4 h-4";
-    switch (language) {
-      case 'TypeScript':
-        return <div className={`${iconClass} bg-gray-600 rounded`}></div>;
-      case 'JavaScript':
-        return <div className={`${iconClass} bg-yellow-500 rounded`}></div>;
-      case 'Vue':
-        return <div className={`${iconClass} bg-green-500 rounded`}></div>;
-      case 'Python':
-        return <div className={`${iconClass} bg-green-600 rounded`}></div>;
-      default:
-        return <div className={`${iconClass} bg-gray-400 rounded`}></div>;
-    }
-  };
+  // const getFrameworkIcon = (language: string | null) => {
+  //   const iconClass = "w-4 h-4";
+  //   switch (language) {
+  //     case 'TypeScript':
+  //       return <div className={`${iconClass} bg-gray-600 rounded`}></div>;
+  //     case 'JavaScript':
+  //       return <div className={`${iconClass} bg-yellow-500 rounded`}></div>;
+  //     case 'Vue':
+  //       return <div className={`${iconClass} bg-green-500 rounded`}></div>;
+  //     case 'Python':
+  //       return <div className={`${iconClass} bg-green-600 rounded`}></div>;
+  //     default:
+  //       return <div className={`${iconClass} bg-gray-400 rounded`}></div>;
+  //   }
+  // };
 
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -143,7 +143,7 @@ export function ProjectGrid() {
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No repositories found</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Click the "Sync Repositories" button in the header to fetch your GitHub repositories.
+            Click the &quot;Sync Repositories&quot; button in the header to fetch your GitHub repositories.
           </p>
         </div>
       </div>

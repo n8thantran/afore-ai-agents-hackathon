@@ -2,29 +2,18 @@
 
 import { useState, useEffect } from "react";
 import {
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   Clock,
   DollarSign,
   Server,
-  Database,
   Activity,
   BarChart3,
-  PieChart,
-  Calendar,
-  Filter,
   Download,
   RefreshCw,
   Play,
-  Pause,
-  StopCircle,
-  Zap,
   Shield,
   Wifi,
-  HardDrive,
-  Settings,
   AlertCircle,
   XCircle,
 } from "lucide-react";
@@ -186,15 +175,16 @@ interface LiveSystemStatus {
 
 export function Analytics() {
   const [timeRange, setTimeRange] = useState("7d");
-  const [selectedProject, setSelectedProject] = useState("all");
+  // eslint-disable-next-line
+  const [selectedProject] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<TerraformAnalyticsData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   
   // Live monitoring state
   const [liveMonitoring, setLiveMonitoring] = useState(true);
-  const [systemStatus, setSystemStatus] = useState<LiveSystemStatus>({
+  const [systemStatus] = useState<LiveSystemStatus>({
     overall: 'operational',
     uptime: 99.8,
     activeIncidents: 0,

@@ -1,4 +1,3 @@
-import { ProjectGrid } from '@/components/ProjectGrid'
 import { Suspense } from 'react'
 import RepoContent from './repo-content'
 

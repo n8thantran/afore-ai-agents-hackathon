@@ -39,9 +39,10 @@ export function Sidebar({ onSyncComplete, activeItem = 'overview', onItemChange 
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="flex items-center gap-4 mb-4">
               {session?.user?.image ? (
-                <img 
-                  src={session.user.image} 
-                  alt="User avatar" 
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.image}
+                  alt="User avatar"
                   className="w-12 h-12 rounded-2xl"
                 />
               ) : (
